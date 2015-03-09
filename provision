@@ -62,8 +62,8 @@ cleanup_old
 # Make sure nix is not running and not present
 # Download and unpack nix
 echo "Retrieving nix"
-wget http://releases.nixos.org/nix/nix-1.7/nix-1.7-x86_64-linux.tar.bz2
-tar jxf nix-1.7-x86_64-linux.tar.bz2
+wget http://releases.nixos.org/nix/nix-1.8/nix-1.8-x86_64-linux.tar.bz2
+tar jxf nix-1.8-x86_64-linux.tar.bz2
 
 # Add nix users / groups
 echo "Creating nixbuilders"
@@ -95,7 +95,7 @@ mkdir -p -m 1777 /nix/var/nix/{gcroots,profiles}/per-user
 
 # Install nix
 echo "Installing nix"
-cd nix-1.7-x86_64-linux
+cd nix-1.8-x86_64-linux
 export NIX_REMOTE=
 ./install
 

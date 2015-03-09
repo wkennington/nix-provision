@@ -70,7 +70,7 @@ for LIB in $LIBS; do
 done
 
 # Update everything to latest versions
-echo "Update nix" >&2
+echo "Updating nix" >&2
 $SCRIPTDIR/update
 
 echo "Please restart your shell in order to take advantage of nix" >&2

@@ -2,20 +2,29 @@
 set -e
 SCRIPTDIR="$(readlink -f "$(dirname "$0")")"
 
+ISSUE="$(cat /etc/issue 2>/dev/null)" || true
+LSB_RELEASE="$(cat /etc/lsb-release 2>/dev/null)" || true
+VCORES="$(cat /proc/cpuinfo  | grep 'core id' | wc -l)"
+
 # Check that we are using a verified working OS
-if ! grep 'Ubuntu 14.04' /etc/issue >/dev/null 2>&1; then
-  echo "Unsupported OS"
+if echo "$ISSUE" | grep -q 'Ubuntu'; then
+  echo "Provisioning Nix for Ubuntu" >&2
+elif echo "$ISSUE" | grep -q 'NixOS'; then
+  echo "NixOS already has nix provisioned" >&2
+  exit 0
+else
+  echo "Unsupported OS" >&2
   exit 1
 fi
 
 # Only allow running as root
 if [ "$(id -u)" -ne "0" ]; then
-  echo "You must run provision as root"
+  echo "You must run provision as root" >&2
   exit 1
 fi
 
 # Include libraries
-LIBS=$(ls "$SCRIPTDIR/libs")
+LIBS=$(ls "$SCRIPTDIR/libs" | sort)
 for LIB in $LIBS; do
   . "$SCRIPTDIR/libs/$LIB"
 done
@@ -37,21 +46,16 @@ cleanup_old () {
   for LIB in $LIBS; do
     "${LIB}_cleanup_old"
   done
-  service nix-daemon stop >/dev/null 2>&1 || true
-  killall nix-daemon >/dev/null 2>&1 || true
-  rm -rf /etc/init/nix-daemon.conf /etc/nix /nix
-  sed -i '/^nixbld/d' /etc/{passwd,group}
-  rm -rf $HOME/{.nix-profile,.nix-channels,.nix-defexpr}
-  sed -i '/# added by Nix installer/d' $HOME/.profile
 }
 trap cleanup_old SIGINT SIGTERM
+
 error () {
   LINE="$1"
   MESSAGE="$2"
   CODE="${3:-1}"
-  echo "Error on line $1: $MESSAGE"
+  echo "Error on line $1: $MESSAGE" >&2
   cleanup_old
-  exit "$CODE"
+  exit "$CODE" >&2
 }
 trap 'error ${LINENO}' ERR
 
@@ -59,82 +63,14 @@ trap 'error ${LINENO}' ERR
 cleanup_old
 [ "$1" = "clean" ] && { echo "Cleaned up"; exit 0; }
 
-# Make sure nix is not running and not present
-# Download and unpack nix
-echo "Retrieving nix"
-wget http://releases.nixos.org/nix/nix-1.8/nix-1.8-x86_64-linux.tar.bz2
-tar jxf nix-1.8-x86_64-linux.tar.bz2
-
-# Add nix users / groups
-echo "Creating nixbuilders"
-GROUPSTR="nixbld:x:1179000000:"
-for I in {1..48}; do
-  echo "nixbld$I:x:$(( $I + 1179000000 )):1179000000:" >> /etc/passwd
-  GROUPSTR="${GROUPSTR}nixbld${I},"
-done
-GROUPSTR="${GROUPSTR:: -1}"
-echo "$GROUPSTR" >> /etc/group
-
-# Create nix.conf
-echo "Configuring a basic nix"
-mkdir -p -m 0755 /etc/nix
-cat >/etc/nix/nix.conf <<EOF
-build-users-group = nixbld
-build-max-jobs = 12
-build-cores = 12
-binary-caches = https://cache.nixos.org
-trusted-binary-caches =
-EOF
-
-# Setup proper ownership
-echo "Creating the nix store"
-mkdir -p /nix/store
-chgrp nixbld /nix/store
-chmod 1775 /nix/store
-mkdir -p -m 1777 /nix/var/nix/{gcroots,profiles}/per-user
-
-# Install nix
-echo "Installing nix"
-cd nix-1.8-x86_64-linux
-export NIX_REMOTE=
-./install
-
-# Source the root profile with nix installed
-echo "Source nix and install bash"
-. /nix/var/nix/profiles/default/etc/profile.d/nix.sh
-nix-env -p /nix/var/nix/profiles/nixbld -iA nixpkgs.pkgs.bash
-nix-env -p /nix/var/nix/profiles/nixbld -iA nixpkgs.pkgs.linuxHeaders
-
-# Add chroot now that a proper profile exists
-echo "Configure nix chroots"
-cat >>/etc/nix/nix.conf <<EOF
-build-use-chroot = true
-build-chroot-dirs = /bin/sh=/nix/var/nix/profiles/nixbld/bin/bash /nix/var/nix/profiles/nixbld
-EOF
-
-# Setup the nix daemon
-echo "Installing nix daemon init script"
-cat >/etc/init/nix-daemon.conf <<EOF
-start on runlevel [2345]
-stop on runlevel [!2345]
-
-respawn
-
-exec /nix/var/nix/profiles/default/bin/nix-daemon --daemon
-EOF
-echo "Starting the nix daemon"
-service nix-daemon start
-export NIX_REMOTE=daemon
-echo "export NIX_REMOTE=daemon # added by Nix installer" >> $HOME/.profile
-
 # Run the install section for libraries
-echo "Installing libraries"
+echo "Installing libraries" >&2
 for LIB in $LIBS; do
   "${LIB}_install"
 done
 
 # Update everything to latest versions
-echo "Update nix"
+echo "Update nix" >&2
 $SCRIPTDIR/update
 
-echo "Please restart your shell in order to take advantage of nix"
+echo "Please restart your shell in order to take advantage of nix" >&2

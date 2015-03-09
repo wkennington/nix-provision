@@ -1,0 +1,128 @@
+#!/bin/sh
+
+service_stop () {
+  if echo "$ISSUE" | grep -q 'Ubuntu'; then
+    service $1 stop
+  else
+    echo "Unsupported Service Manager" >&2
+    exit 1
+  fi
+}
+service_start () {
+  if echo "$ISSUE" | grep -q 'Ubuntu'; then
+    service $1 stop
+  else
+    echo "Unsupported Service Manager" >&2
+    exit 1
+  fi
+}
+http_download () {
+  wget "$1" && return 0
+  curl -O "$1" && return 0
+  echo "Failed to download $1" >&2
+  return 1
+}
+
+# Required Module Functions
+core_cleanup_final () {
+  return 0
+}
+
+core_cleanup_old () {
+  service_stop nix-daemon >/dev/null 2>&1 || true
+  killall nix-daemon >/dev/null 2>&1 || true
+  rm -rf /etc/init/nix-daemon.conf /etc/nix /nix
+  sed -i '/^nixbld/d' /etc/{passwd,group}
+  rm -rf $HOME/{.nix-profile,.nix-channels,.nix-defexpr}
+  sed -i '/# added by Nix installer/d' $HOME/.profile
+}
+
+core_install () {
+  # Make sure nix is not running and not present
+  # Download and unpack nix
+  echo "Retrieving nix" >&2
+  http_download "http://releases.nixos.org/nix/nix-1.8/nix-1.8-$(uname -m)-linux.tar.bz2"
+  tar jxf 'nix-1.8-x86_64-linux.tar.bz2'
+
+  # Add nix users / groups
+  echo "Creating nixbuilders" >&2
+  ID="1179000000"
+  if grep -q "$ID" /etc/passwd || grep -q "$ID" /etc/group; then
+    echo "UID / GID already exists" >&2
+    exit 1
+  fi
+  GROUPSTR="nixbld:x:1179000000:"
+  for I in $(seq 1 $(($VCORES * 10))); do
+    echo "nixbld$I:x:$(( $I + 1179000000 )):1179000000:" >> /etc/passwd
+    GROUPSTR="${GROUPSTR}nixbld${I},"
+  done
+  GROUPSTR="${GROUPSTR:: -1}"
+  echo "$GROUPSTR" >> /etc/group
+
+  # Create nix.conf
+  echo "Configuring a basic nix" >&2
+  mkdir -p -m 0755 /etc/nix
+cat >/etc/nix/nix.conf <<EOF
+build-users-group = nixbld
+build-max-jobs = $VCORES
+build-cores = $VCORES
+binary-caches = https://cache.nixos.org
+trusted-binary-caches =
+EOF
+
+  # Setup proper ownership
+  echo "Creating the nix store" >&2
+  mkdir -p /nix/store
+  chgrp nixbld /nix/store
+  chmod 1775 /nix/store
+  mkdir -p -m 1777 /nix/var/nix/{gcroots,profiles}/per-user
+
+  # Install nix
+  echo "Installing nix" >&2
+  cd nix-1.8-x86_64-linux
+  export NIX_REMOTE=
+  ./install
+
+  # Source the root profile with nix installed
+  echo "Source nix and install bash" >&2
+  . /nix/var/nix/profiles/default/etc/profile.d/nix.sh
+  nix-env -p /nix/var/nix/profiles/nixbld -iA nixpkgs.pkgs.bash
+  nix-env -p /nix/var/nix/profiles/nixbld -iA nixpkgs.pkgs.linuxHeaders
+
+  # Add chroot now that a proper profile exists
+  echo "Configure nix chroots" >&2
+cat >>/etc/nix/nix.conf <<EOF
+build-use-chroot = true
+build-chroot-dirs = /bin/sh=/nix/var/nix/profiles/nixbld/bin/bash /nix/var/nix/profiles/nixbld
+EOF
+
+  # Setup the nix daemon
+  echo "Installing nix daemon init script" >&2
+  if echo "$ISSUE" | grep -q 'Ubuntu'; then
+cat >/etc/init/nix-daemon.conf <<EOF
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+
+exec /nix/var/nix/profiles/default/bin/nix-daemon --daemon
+EOF
+  else
+    echo "Unsupported Init System" >&2
+    exit 1
+  fi
+
+  # Startup the daemon
+  echo "Starting the nix daemon" >&2
+  service_start nix-daemon
+  export NIX_REMOTE=daemon
+  echo "export NIX_REMOTE=daemon # added by Nix installer" >> $HOME/.profile
+}
+
+core_update () {
+  nix-channel --update
+  nix-env -p /nix/var/nix/profiles/nixbld -iA nixpkgs.pkgs.bash
+  nix-env -p /nix/var/nix/profiles/nixbld -iA nixpkgs.pkgs.linuxHeaders
+  nix-env -iA nixpkgs.pkgs.nix
+  service_restart nix-daemon restart
+}

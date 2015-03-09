@@ -1,12 +1,7 @@
 #!/bin/sh
 set -e
 SCRIPTDIR="$(readlink -f "$(dirname "$0")")"
-nix-channel --update
-nix-env -p /nix/var/nix/profiles/nixbld -iA nixpkgs.pkgs.bash
-nix-env -p /nix/var/nix/profiles/nixbld -iA nixpkgs.pkgs.linuxHeaders
-nix-env -iA nixpkgs.pkgs.nix
-service nix-daemon restart
-for LIB in $(ls "$SCRIPTDIR/libs"); do
+for LIB in $(ls "$SCRIPTDIR/libs" | sort); do
   . $SCRIPTDIR/libs/$LIB
   "${LIB}_update"
 done

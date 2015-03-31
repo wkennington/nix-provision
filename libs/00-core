@@ -79,6 +79,8 @@ build-max-jobs = $VCORES
 build-cores = $VCORES
 binary-caches = https://cache.nixos.org
 trusted-binary-caches =
+signed-binary-caches = *
+binary-cache-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
 EOF
 
   # Setup proper ownership
@@ -134,7 +136,7 @@ EOF
 core_update () {
   nix-channel --update
   nix-env -p /nix/var/nix/profiles/nixbld -irA nixpkgs.pkgs.bash
-  nix-env -iA nixpkgs.pkgs.nix
+  nix-env -iA nixpkgs.pkgs.nixUnstable
 
   BASH="$(readlink -f /nix/var/nix/profiles/nixbld/bin/bash)"
   DEPS="$(nix-store --query --tree $BASH 2>&1 | sed 's,[^/]*\(/[^ ]*\).*,\1,' | sort | uniq | tr '\n' ' ')"
@@ -144,6 +146,8 @@ build-max-jobs = $VCORES
 build-cores = $VCORES
 binary-caches = https://cache.nixos.org
 trusted-binary-caches =
+signed-binary-caches = *
+binary-cache-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
 build-use-chroot = true
 build-chroot-dirs = /bin/sh=$BASH $DEPS
 EOF

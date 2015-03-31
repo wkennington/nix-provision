@@ -1,8 +1,14 @@
 #!/bin/sh
 set -e
 SCRIPTDIR="$(readlink -f "$(dirname "$0")")"
+
+ISSUE="$(cat /etc/issue 2>/dev/null)" || true
+LSB_RELEASE="$(cat /etc/lsb-release 2>/dev/null)" || true
+VCORES="$(cat /proc/cpuinfo  | grep 'core id' | wc -l)"
+
 for LIB in $(ls "$SCRIPTDIR/libs" | sort); do
   . $SCRIPTDIR/libs/$LIB
-  "${LIB}_update"
+  LIBNAME="$(echo "$LIB" | awk -F- '{print $2}')"
+  "${LIBNAME}_update"
 done
 nix-collect-garbage -d

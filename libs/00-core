@@ -1,5 +1,23 @@
 #!/bin/sh
 
+service_restart () {
+  if echo "$ISSUE" | grep -q 'Ubuntu'; then
+    service $1 restart
+  else
+    echo "Unsupported Service Manager" >&2
+    exit 1
+  fi
+}
+
+service_start () {
+  if echo "$ISSUE" | grep -q 'Ubuntu'; then
+    service $1 start
+  else
+    echo "Unsupported Service Manager" >&2
+    exit 1
+  fi
+}
+
 service_stop () {
   if echo "$ISSUE" | grep -q 'Ubuntu'; then
     service $1 stop
@@ -8,14 +26,7 @@ service_stop () {
     exit 1
   fi
 }
-service_start () {
-  if echo "$ISSUE" | grep -q 'Ubuntu'; then
-    service $1 stop
-  else
-    echo "Unsupported Service Manager" >&2
-    exit 1
-  fi
-}
+
 http_download () {
   wget "$1" && return 0
   curl -O "$1" && return 0

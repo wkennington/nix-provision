@@ -41,6 +41,10 @@ http_get () {
   return 1
 }
 
+write_nix_conf () {
+  sed "s,@VCORES@,$VCORES," "$SCRIPTDIR/ref/core/nix.conf.in" > /etc/nix/nix.conf
+}
+
 # Required Module Functions
 core_cleanup_final () {
   return 0
@@ -87,15 +91,7 @@ core_install () {
   # Create nix.conf
   echo "Configuring a basic nix" >&2
   mkdir -p -m 0755 /etc/nix
-cat >/etc/nix/nix.conf <<EOF
-build-users-group = nixbld
-build-max-jobs = $VCORES
-build-cores = $VCORES
-binary-caches = https://cache.nixos.org
-trusted-binary-caches =
-signed-binary-caches = *
-binary-cache-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
-EOF
+  write_nix_conf
 
   # Setup proper ownership
   echo "Creating the nix store" >&2
@@ -111,30 +107,13 @@ EOF
   ./install
 
   # Source the root profile with nix installed
-  echo "Source nix and install bash" >&2
+  echo "Source nix" >&2
   . /nix/var/nix/profiles/default/etc/profile.d/nix.sh
-  nix-env -p /nix/var/nix/profiles/nixbld -iA nixpkgs.pkgs.bash
-
-  # Add chroot now that a proper profile exists
-  BASH="$(readlink -f /nix/var/nix/profiles/nixbld/bin/bash)"
-  DEPS="$(nix-store --query --tree $BASH 2>&1 | sed 's,[^/]*\(/[^ ]*\).*,\1,' | sort | uniq | tr '\n' ' ')"
-  echo "Configure nix chroots" >&2
-cat >>/etc/nix/nix.conf <<EOF
-build-use-chroot = true
-build-chroot-dirs = /bin/sh=$BASH $DEPS
-EOF
 
   # Setup the nix daemon
   echo "Installing nix daemon init script" >&2
   if echo "$ISSUE" | grep -q 'Ubuntu'; then
-cat >/etc/init/nix-daemon.conf <<EOF
-start on runlevel [2345]
-stop on runlevel [!2345]
-
-respawn
-
-exec /nix/var/nix/profiles/default/bin/nix-daemon --daemon
-EOF
+    cp "$SCRIPTDIR/ref/core/nix-daemon.conf" /etc/init
   else
     echo "Unsupported Init System" >&2
     exit 1

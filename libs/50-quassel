@@ -11,14 +11,7 @@ add_user () {
 }
 
 quassel_install () {
-cat >/etc/init/quassel.conf <<EOF
-start on runlevel [2345]
-stop on runlevel [!2345]
-
-respawn
-
-exec /nix/var/nix/profiles/quassel/bin/quasselcore
-EOF
+  cp "$SCRIPTDIR/ref/quassel/quassel.conf" /etc/init/quassel.conf
   add_user quassel 1279000000 55534 "Quassel Daemon User"
   mkdir -p -m 0700 /var/lib/quassel
   chown quassel /var/lib/quassel

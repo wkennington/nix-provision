@@ -28,9 +28,16 @@ service_stop () {
 }
 
 http_download () {
-  wget "$1" && return 0
   curl -O "$1" && return 0
+  wget "$1" && return 0
   echo "Failed to download $1" >&2
+  return 1
+}
+
+http_get () {
+  curl "$1" && return 0
+  wget -O- "$1" && return 0
+  echo "Failed to get $1" >&2
   return 1
 }
 
@@ -52,8 +59,15 @@ core_install () {
   # Make sure nix is not running and not present
   # Download and unpack nix
   echo "Retrieving nix" >&2
-  http_download "http://releases.nixos.org/nix/nix-1.8/nix-1.8-$(uname -m)-linux.tar.bz2"
-  tar jxf 'nix-1.8-x86_64-linux.tar.bz2'
+  LATEST_EVAL="$(http_get https://hydra.nixos.org/jobset/nix/master | grep 'eval/' | sed 's,.*href="\([^"]*\).*,\1,' | head -n 1)"
+  echo "$LATEST_EVAL" >&2
+  ARCH="$(uname -m)-$(uname -s | tr '[:upper:]' '[:lower:]')"
+  LATEST_NIX="$(http_get "$LATEST_EVAL" | grep "binaryTarball.$ARCH" | sed 's,.*href="\([^"]*\).*,\1,')"
+  echo "$LATEST_NIX" >&2
+  LATEST_TAR="$(http_get "$LATEST_NIX" | grep 'href="' | sed 's,.*href="\([^"]*\).*,\1,' | grep .tar)"
+  echo "$LATEST_TAR" >&2
+  http_download "$LATEST_TAR"
+  tar xf nix-*
 
   # Add nix users / groups
   echo "Creating nixbuilders" >&2
@@ -92,7 +106,7 @@ EOF
 
   # Install nix
   echo "Installing nix" >&2
-  cd nix-1.8-x86_64-linux
+  cd nix-*
   export NIX_REMOTE=
   ./install
 
@@ -135,22 +149,7 @@ EOF
 
 core_update () {
   nix-channel --update
-  nix-env -p /nix/var/nix/profiles/nixbld -irA nixpkgs.pkgs.bash
-  nix-env -iA nixpkgs.pkgs.nixUnstable
-
-  BASH="$(readlink -f /nix/var/nix/profiles/nixbld/bin/bash)"
-  DEPS="$(nix-store --query --tree $BASH 2>&1 | sed 's,[^/]*\(/[^ ]*\).*,\1,' | sort | uniq | tr '\n' ' ')"
-cat >/etc/nix/nix.conf <<EOF
-build-users-group = nixbld
-build-max-jobs = $VCORES
-build-cores = $VCORES
-binary-caches = https://cache.nixos.org
-trusted-binary-caches =
-signed-binary-caches = *
-binary-cache-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
-build-use-chroot = true
-build-chroot-dirs = /bin/sh=$BASH $DEPS
-EOF
-
+  nix-env -iA pkgs.nixUnstable
+  write_nix_conf
   service_restart nix-daemon
 }

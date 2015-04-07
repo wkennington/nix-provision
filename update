@@ -6,9 +6,12 @@ ISSUE="$(cat /etc/issue 2>/dev/null)" || true
 LSB_RELEASE="$(cat /etc/lsb-release 2>/dev/null)" || true
 VCORES="$(cat /proc/cpuinfo  | grep 'core id' | wc -l)"
 
-for LIB in $(ls "$SCRIPTDIR/libs" | sort); do
+LIBS=$(ls "$SCRIPTDIR/libs" | sort)
+LIBNAMES=$(echo "$LIBS" | sed 's,^[0-9]*-,,')
+for LIB in $LIBS; do
   . $SCRIPTDIR/libs/$LIB
-  LIBNAME="$(echo "$LIB" | awk -F- '{print $2}')"
-  "${LIBNAME}_update"
+done
+for LIB in $LIBSNAMES; do
+  "${LIB}_update"
 done
 nix-collect-garbage -d

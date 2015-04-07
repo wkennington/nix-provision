@@ -25,6 +25,7 @@ fi
 
 # Include libraries
 LIBS=$(ls "$SCRIPTDIR/libs" | sort)
+LIBNAMES=$(echo "$LIBS" | sed 's,^[0-9]*-,,')
 for LIB in $LIBS; do
   . "$SCRIPTDIR/libs/$LIB"
 done
@@ -33,7 +34,7 @@ done
 TMP="$(mktemp -d)"
 cd "$TMP"
 cleanup_final () {
-  for LIB in $LIBS; do
+  for LIB in $LIBNAMES; do
     "${LIB}_cleanup_final"
   done
   cd /tmp
@@ -43,7 +44,7 @@ trap cleanup_final 0
 
 # Cleanup old state
 cleanup_old () {
-  for LIB in $LIBS; do
+  for LIB in $LIBNAMES; do
     "${LIB}_cleanup_old"
   done
 }
@@ -65,7 +66,7 @@ cleanup_old
 
 # Run the install section for libraries
 echo "Installing libraries" >&2
-for LIB in $LIBS; do
+for LIB in $LIBNAMES; do
   "${LIB}_install"
 done
 

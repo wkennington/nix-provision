@@ -19,7 +19,7 @@ quassel_install () {
 }
 
 quassel_update () {
-  nix-env -p /nix/var/nix/profiles/quassel -iA nixpkgs.pkgs.kde4.quasselDaemon
+  nix-env -p /nix/var/nix/profiles/quassel -irA nixpkgs.pkgs.quasselDaemon_qt5
   service quassel restart
 }
 

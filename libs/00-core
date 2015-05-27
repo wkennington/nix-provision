@@ -53,10 +53,9 @@ core_cleanup_final () {
 core_cleanup_old () {
   service_stop nix-daemon >/dev/null 2>&1 || true
   killall nix-daemon >/dev/null 2>&1 || true
-  rm -rf /etc/init/nix-daemon.conf /etc/nix /nix
+  rm -rf /etc/init/nix-daemon.conf /etc/nix /nix /etc/profile.d/nix-profile.sh
   sed -i '/^nixbld/d' /etc/{passwd,group}
   rm -rf $HOME/{.nix-profile,.nix-channels,.nix-defexpr}
-  sed -i '/# added by Nix installer/d' $HOME/.profile
 }
 
 core_install () {
@@ -108,7 +107,7 @@ core_install () {
 
   # Source the root profile with nix installed
   echo "Source nix" >&2
-  . /nix/var/nix/profiles/default/etc/profile.d/nix.sh
+  . "$SCRIPTDIR/ref/core/nix-profile.sh"
 
   # Setup the nix daemon
   echo "Installing nix daemon init script" >&2
@@ -122,13 +121,14 @@ core_install () {
   # Startup the daemon
   echo "Starting the nix daemon" >&2
   service_start nix-daemon
-  export NIX_REMOTE=daemon
-  echo "export NIX_REMOTE=daemon # added by Nix installer" >> $HOME/.profile
+
+  # Add a nix profile for all users
+  cp "$SCRIPTDIR/ref/core/nix-profile.sh" /etc/profile.d/nix-profile.sh
 }
 
 core_update () {
-  nix-channel --update
-  nix-env -iA pkgs.nixUnstable
+  nix-channel --update || true
+  nix-env -iA nixpkgs.pkgs.nixUnstable
   write_nix_conf
   service_restart nix-daemon
 }

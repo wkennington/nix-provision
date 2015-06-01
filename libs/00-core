@@ -62,10 +62,8 @@ core_install () {
   # Make sure nix is not running and not present
   # Download and unpack nix
   echo "Retrieving nix" >&2
-  LATEST_EVAL="$(http_get https://hydra.nixos.org/jobset/nix/master | grep 'eval/' | sed 's,.*href="\([^"]*\).*,\1,' | head -n 1)"
-  echo "$LATEST_EVAL" >&2
   ARCH="$(uname -m)-$(uname -s | tr '[:upper:]' '[:lower:]')"
-  LATEST_NIX="$(http_get "$LATEST_EVAL" | grep "binaryTarball.$ARCH" | sed 's,.*href="\([^"]*\).*,\1,')"
+  LATEST_NIX="$(http_get "https://hydra.nixos.org/job/nix/master/binaryTarball.$ARCH" | grep "/build" | sed 's,.*href="\([^"]*\).*,\1,' | head -n 1)"
   echo "$LATEST_NIX" >&2
   LATEST_TAR="$(http_get "$LATEST_NIX" | grep 'href="' | sed 's,.*href="\([^"]*\).*,\1,' | grep .tar)"
   echo "$LATEST_TAR" >&2

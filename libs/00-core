@@ -45,6 +45,10 @@ write_nix_conf () {
   sed "s,@VCORES@,$VCORES," "$SCRIPTDIR/ref/core/nix.conf.in" > /etc/nix/nix.conf
 }
 
+write_profile_script () {
+  cp "$SCRIPTDIR/ref/core/nix-profile.sh" /etc/profile.d/nix-profile.sh
+}
+
 # Required Module Functions
 core_cleanup_final () {
   return 0
@@ -120,8 +124,7 @@ core_install () {
   echo "Starting the nix daemon" >&2
   service_start nix-daemon
 
-  # Add a nix profile for all users
-  cp "$SCRIPTDIR/ref/core/nix-profile.sh" /etc/profile.d/nix-profile.sh
+  write_profile_script
 }
 
 core_update () {
@@ -129,4 +132,5 @@ core_update () {
   nix-env -iA nixpkgs.pkgs.nixUnstable
   write_nix_conf
   service_restart nix-daemon
+  write_profile_script
 }

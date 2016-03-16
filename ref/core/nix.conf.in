@@ -1,8 +1,9 @@
 build-users-group = nixbld
 build-max-jobs = @VCORES@
 build-cores = @VCORES@
-binary-caches = https://cache.nixos.org https://hydra.nixos.org
+binary-caches = https://cache.triton.wak.io
 trusted-binary-caches =
 signed-binary-caches = *
-binary-cache-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= hydra.nixos.org-1:CNHJZBh9K4tP3EKF6FkkgeVYsS3ohTl+oS0Qa8bezVs=
+binary-cache-public-keys = cache.triton.wak.io-1:GQXw9k3nK8N1dIsAq9K8EgS59pl4j1aQTJZc0kVnXRo=
 build-use-chroot = true
+auto-optimise-store = true

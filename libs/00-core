@@ -49,6 +49,10 @@ write_profile_script () {
   cp "$SCRIPTDIR/ref/core/nix-profile.sh" /etc/profile.d/nix-profile.sh
 }
 
+install_pkg () {
+  nix-env -iA nixpkgs.$@
+}
+
 # Required Module Functions
 core_cleanup_final () {
   return 0
@@ -129,7 +133,7 @@ core_install () {
 
 core_update () {
   nix-channel --update || true
-  nix-env -iA nixpkgs.pkgs.nixUnstable
+  install_pkg pkgs.nix
   write_nix_conf
   service_restart nix-daemon
   write_profile_script

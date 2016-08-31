@@ -13,6 +13,6 @@ if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix.sh ]; then
   . /nix/var/nix/profiles/default/etc/profile.d/nix.sh
 
   # Add some useful multi-user options
-  export PATH="/nix/var/nix/profiles/default/bin:/nix/var/nix/profiles/default/sbin:$PATH"
+  export PATH="$PATH:/nix/var/nix/profiles/default/bin"
   export NIX_REMOTE=daemon
 fi

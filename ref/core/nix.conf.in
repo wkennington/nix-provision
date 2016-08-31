@@ -7,3 +7,5 @@ signed-binary-caches = *
 binary-cache-public-keys = cache.triton.wak.io-1:GQXw9k3nK8N1dIsAq9K8EgS59pl4j1aQTJZc0kVnXRo=
 build-use-chroot = true
 auto-optimise-store = true
+gc-keep-derivations = false
+gc-keep-outputs = false

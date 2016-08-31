@@ -129,6 +129,12 @@ core_install () {
   service_start nix-daemon
 
   write_profile_script
+
+  # Remove any obsolete channels
+  rm /nix/var/nix/profiles/per-user/root/channels*
+
+  # Make sure we are up to date with the latest channel
+  core_update
 }
 
 core_update () {

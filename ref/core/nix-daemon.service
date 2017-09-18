@@ -1,0 +1,16 @@
+[Unit]
+Description=Nix Daemon
+RequiresMountsFor=/nix/store
+RequiresMountsFor=/nix/var
+ConditionPathIsReadWrite=/nix/var/nix/daemon-socket
+
+[Service]
+ExecStart=@/nix/var/nix/profiles/default/bin/nix-daemon nix-daemon --daemon
+KillMode=process
+IOSchedulingPriority=0
+LimitNOFILE=4096
+Nice=0
+TasksMax=infinity
+
+[Install]
+WantedBy=multi-user.target

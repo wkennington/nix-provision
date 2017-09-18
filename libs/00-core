@@ -1,8 +1,10 @@
 #!/bin/sh
 
 service_restart () {
-  if echo "$ISSUE" | grep -q 'Ubuntu'; then
-    service $1 restart
+  if echo "$ISSUE" | grep -q 'Ubuntu 14.04'; then
+    service "$1" restart
+  elif echo "$ISSUE" | grep -q 'Debian GNU/Linux 9'; then
+    systemctl restart "$1"
   else
     echo "Unsupported Service Manager" >&2
     exit 1
@@ -10,8 +12,10 @@ service_restart () {
 }
 
 service_start () {
-  if echo "$ISSUE" | grep -q 'Ubuntu'; then
-    service $1 start
+  if echo "$ISSUE" | grep -q 'Ubuntu 14.04'; then
+    service "$1" start
+  elif echo "$ISSUE" | grep -q 'Debian GNU/Linux 9'; then
+    systemctl start "$1"
   else
     echo "Unsupported Service Manager" >&2
     exit 1
@@ -19,8 +23,10 @@ service_start () {
 }
 
 service_stop () {
-  if echo "$ISSUE" | grep -q 'Ubuntu'; then
-    service $1 stop
+  if echo "$ISSUE" | grep -q 'Ubuntu 14.04'; then
+    service "$1" stop
+  elif echo "$ISSUE" | grep -q 'Debian GNU/Linux 9'; then
+    systemctl stop "$1"
   else
     echo "Unsupported Service Manager" >&2
     exit 1
@@ -116,8 +122,11 @@ core_install () {
 
   # Setup the nix daemon
   echo "Installing nix daemon init script" >&2
-  if echo "$ISSUE" | grep -q 'Ubuntu'; then
+  if echo "$ISSUE" | grep -q 'Ubuntu 14.04'; then
     cp "$SCRIPTDIR/ref/core/nix-daemon.conf" /etc/init
+  elif echo "$ISSUE" | grep -q 'Debian GNU/Linux 9'; then
+    cp "$SCRIPTDIR/ref/core/nix-daemon.service" /lib/systemd/system
+    systemctl enable nix-daemon
   else
     echo "Unsupported Init System" >&2
     exit 1

@@ -69,14 +69,13 @@ core_cleanup_old () {
 core_install () {
   # Make sure nix is not running and not present
   # Download and unpack nix
-  echo "Retrieving nix" >&2
+  echo "Rerieving nix metadata" >&2
   ARCH="$(uname -m)-$(uname -s | tr '[:upper:]' '[:lower:]')"
-  LATEST_NIX="$(http_get "https://hydra.nixos.org/job/nix/master/binaryTarball.$ARCH" | grep "/build" | sed 's,.*href="\([^"]*\).*,\1,' | head -n 1)"
-  echo "$LATEST_NIX" >&2
-  LATEST_TAR="$(http_get "$LATEST_NIX" | grep 'href="' | sed 's,.*href="\([^"]*\).*,\1,' | grep .tar)"
-  echo "$LATEST_TAR" >&2
+  LATEST_TAR="$(http_get 'https://nixos.org/nix/install' | grep '^url=' | sed -e 's,url="\(.*\)",\1,' -e "s,\$system,$ARCH,g")"
+  echo "Retrieving nix" >&2
   http_download "$LATEST_TAR"
-  tar xf nix-*
+  tar xf nix-*.tar*
+  rm nix-*.tar*
 
   # Add nix users / groups
   echo "Creating nixbuilders" >&2

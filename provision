@@ -9,7 +9,7 @@ VCORES="$(cat /proc/cpuinfo  | grep 'core id' | wc -l)"
 # Check that we are using a verified working OS
 if echo "$ISSUE" | grep -q 'Ubuntu 14.04'; then
   echo "Provisioning Nix for Ubuntu" >&2
-elif echo "$ISSUE" | grep -q 'Debian GNU/Linux 9'; then
+elif echo "$ISSUE" | grep -q 'Debian GNU/Linux'; then
   echo "Provisioning Nix for Debian" >&2
 elif echo "$ISSUE" | grep -q 'NixOS'; then
   echo "NixOS already has nix provisioned" >&2

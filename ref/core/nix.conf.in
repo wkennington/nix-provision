@@ -4,7 +4,7 @@ build-cores = @VCORES@
 binary-caches = https://cache.triton.wak.io
 trusted-binary-caches =
 signed-binary-caches = *
-binary-cache-public-keys = cache.triton.wak.io-1:GQXw9k3nK8N1dIsAq9K8EgS59pl4j1aQTJZc0kVnXRo=
+binary-cache-public-keys = cache.triton.wak.io-1:CXJOjY8UX9vBsWx5PwndZLQD7ZwAwXMrKPRBC6IL+6o=
 build-use-chroot = true
 auto-optimise-store = true
 gc-keep-derivations = false

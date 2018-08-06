@@ -31,7 +31,7 @@ http_get () {
 }
 
 write_nix_conf () {
-  sed "s,@VCORES@,$VCORES," "$SCRIPTDIR/ref/core/nix.conf.in" > /etc/nix/nix.conf
+  cp "$SCRIPTDIR"/ref/core/nix.conf /etc/nix/nix.conf
 }
 
 write_profile_script () {

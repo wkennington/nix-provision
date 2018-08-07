@@ -38,6 +38,24 @@ write_profile_script () {
   install -m0644 -t /etc/profile.d "$SCRIPTDIR/ref/core/nix-profile.sh"
 }
 
+write_init_script () {
+  echo "Installing nix daemon init script" >&2
+  if echo "$ISSUE" | grep -q 'Ubuntu 14.04'; then
+    install -m0644 -t /etc/init "$SCRIPTDIR/ref/core/nix-daemon.conf"
+  elif echo "$ISSUE" | grep -q 'Debian GNU/Linux'; then
+    install -m0644 -t /lib/systemd/system "$SCRIPTDIR/ref/core/nix-daemon.service"
+    systemctl daemon-reload
+    systemctl enable nix-daemon
+  elif echo "$ISSUE" | grep -q 'gLinux rodete'; then
+    install -m0644 -t /lib/systemd/system "$SCRIPTDIR/ref/core/nix-daemon.service"
+    systemctl daemon-reload
+    systemctl enable nix-daemon
+  else
+    echo "Unsupported Init System" >&2
+    exit 1
+  fi
+}
+
 install_pkg () {
   nix-env -iA nixpkgs.$@
 }
@@ -104,19 +122,7 @@ core_install () {
   . "$SCRIPTDIR/ref/core/nix-profile.sh"
 
   # Setup the nix daemon
-  echo "Installing nix daemon init script" >&2
-  if echo "$ISSUE" | grep -q 'Ubuntu 14.04'; then
-    install -m0644 -t /etc/init "$SCRIPTDIR/ref/core/nix-daemon.conf"
-  elif echo "$ISSUE" | grep -q 'Debian GNU/Linux'; then
-    install -m0644 -t /lib/systemd/system "$SCRIPTDIR/ref/core/nix-daemon.service"
-    systemctl enable nix-daemon
-  elif echo "$ISSUE" | grep -q 'gLinux rodete'; then
-    install -m0644 -t /lib/systemd/system "$SCRIPTDIR/ref/core/nix-daemon.service"
-    systemctl enable nix-daemon
-  else
-    echo "Unsupported Init System" >&2
-    exit 1
-  fi
+  write_init_script
 
   # Startup the daemon
   echo "Starting the nix daemon" >&2
@@ -135,6 +141,7 @@ core_update () {
   nix-channel --update || true
   install_pkg pkgs.nix
   write_nix_conf
+  write_init_script
   service_cmd restart nix-daemon
   write_profile_script
 }
